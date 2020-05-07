@@ -38,11 +38,7 @@ object workerpool {
         -       <- fs.parTraverse_(workers.put).start
       } yield new WorkerPool[F, A, B] {
         override def exec(a: A): F[B] =
-          for {
-            worker <- workers.take
-            b      <- worker(a)
-            _      <- workers.put(worker).start
-          } yield b
+          Concurrent[F].bracket(workers.take)(_(a))(workers.put(_).start.void)
       }
   }
 }
