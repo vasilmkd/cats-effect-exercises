@@ -60,7 +60,7 @@ object WorkerPoolApp extends IOApp {
       .flatMap { pool =>
         List
           .range(0, 100)
-          .traverse(pool.exec)
+          .parTraverse(pool.exec)
       }
       .redeem(_ => ExitCode.Error, _ => ExitCode.Success)
 }
