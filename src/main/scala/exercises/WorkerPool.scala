@@ -4,9 +4,10 @@ import scala.concurrent.duration._
 import scala.util.Random
 
 import cats.Parallel
-import cats.implicits._
 import cats.effect.{ Concurrent, ExitCode, IO, IOApp, Sync, Timer }
 import cats.effect.concurrent.{ MVar, Ref }
+import cats.effect.implicits._
+import cats.implicits._
 
 object workerpool {
   type Worker[F[_], A, B] = A => F[B]
@@ -34,13 +35,13 @@ object workerpool {
     def of[F[_]: Concurrent: Parallel, A, B](fs: List[Worker[F, A, B]]): F[WorkerPool[F, A, B]] =
       for {
         workers <- MVar.empty[F, Worker[F, A, B]]
-        -       <- Concurrent[F].start(fs.parTraverse_(workers.put))
+        -       <- fs.parTraverse_(workers.put).start
       } yield new WorkerPool[F, A, B] {
         override def exec(a: A): F[B] =
           for {
             worker <- workers.take
             b      <- worker(a)
-            _      <- Concurrent[F].start(workers.put(worker))
+            _      <- workers.put(worker).start
           } yield b
       }
   }
